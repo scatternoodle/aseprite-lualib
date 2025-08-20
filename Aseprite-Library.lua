@@ -51,7 +51,7 @@
 ---@field activeBrush Brush
 app = {}
 
----@class (exact) Clipboard https://www.aseprite.org/api/app_clipboard#appclipboard
+---@class (exact) Clipboard https://www.aseprite.org/api/app_clipboard
 ---@field text string
 ---@field image Image
 ---@field content {image?: Image | nil, selection?: Selection | nil, palette?: Palette | nil, tileset?: Tileset | nil, text: string}
