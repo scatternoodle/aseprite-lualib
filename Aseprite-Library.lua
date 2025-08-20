@@ -28,7 +28,7 @@
 ---@field alert fun(title: string) | fun(table: { title: string, text: string | string[], buttons: string | string[] })
 ---@field open fun(filename: string): Sprite | nil
 ---@field exit fun()
----@field transaction fun(text?: string, function: fun())
+---@field transaction fun(text?: string, function: fun(...: any)) | fun(function: fun(...: any))
 ---@field command command
 ---@field preferences preferences
 ---@field fs fs
@@ -37,8 +37,9 @@
 ---@field refresh fun()
 ---@field undo fun()
 ---@field redo fun()
----@field useTool fun(tool: string | Tool, color: Color, bgColor: Color, brush: Brush, points: Point[], cel: Cel, layer: Layer, frame: Frame, ink: Ink, button: MouseButton.LEFT | MouseButton.RIGHT, opacity: integer, contiguous: boolean, tolerance: integer, freehandAlgorithm: 0 | 1, selection: SelectionMode.REPLACE | SelectionMode.ADD | SelectionMode.SUBTRACT | SelectionMode.INTERSECT, tilemapMode: TilemapMode.PIXELS | TilemapMode.TILES, tilesetMode: TilesetMode.MANUAL | TilesetMode.AUTO | TilesetMode.STACK)
+---@field useTool fun(table: {tool: string | Tool, color?: Color, bgColor?: Color, brush?: Brush, points?: Point[], cel?: Cel, layer?: Layer, frame?: Frame, ink?: Ink, button?: MouseButton, opacity?: integer, contiguous?: boolean, tolerance?: integer, freehandAlgorithm?: 0 | 1, selection?: SelectionMode, tilemapMode?: TilemapMode, tilesetMode?: TilesetMode})
 ---@field events Events
+---@field clipboard Clipboard
 -- @deprecated
 ---@field activeSprite Sprite | nil
 ---@field activeLayer Layer
@@ -49,6 +50,14 @@
 ---@field activeTool Tool
 ---@field activeBrush Brush
 app = {}
+
+---@class (exact) Clipboard https://www.aseprite.org/api/app_clipboard
+---@field text string
+---@field image Image
+---@field content {image?: Image | nil, selection?: Selection | nil, palette?: Palette | nil, tileset?: Tileset | nil, text: string}
+---@field hasText boolean
+---@field hasImage boolean
+---@field clear fun()
 
 ---@class (exact) pixelColor https://www.aseprite.org/api/pixelcolor
 ---@field rgba fun(red: number, green: number, blue: number, alpha?: number): Color
@@ -148,7 +157,7 @@ pixelColor = {}
 ---@field NewFile fun(table: { ui: boolean, width: number, height: number, colorMode: ColorMode, fromClipboard: boolean }) https://www.aseprite.org/api/command/NewFile
 ---@field NewFrameTag fun()
 ---@field NewFrame fun()
----@field NewLayer fun(table: { name: string, group: boolean, reference: boolean, tilemap: boolean, gridBounds: Rectangle, ask: boolean, fromFile: boolean, fromClipboard: boolean, viaCut: boolean, viaCopy: boolean, top: boolean, before: boolean }) https://www.aseprite.org/api/command/NewLayer
+---@field NewLayer fun(table?: { name: string, group: boolean, reference: boolean, tilemap: boolean, gridBounds: Rectangle, ask: boolean, fromFile: boolean, fromClipboard: boolean, viaCut: boolean, viaCopy: boolean, top: boolean, before: boolean }) https://www.aseprite.org/api/command/NewLayer
 ---@field NewSpriteFromSelection fun()
 ---@field OpenBrowser fun()
 ---@field OpenFile fun()
@@ -231,7 +240,7 @@ preferences = {}
 ---@field fileTitle fun(fn: string): string
 ---@field filePathAndTitle fun(fn: string): string
 ---@field normalizePath fun(fp: string): string
----@field joinPath fun(path1: string, path2: string): string
+---@field joinPath fun(...: string): string
 ---@field currentPath string
 ---@field appPath string
 ---@field tempPath string
@@ -334,6 +343,13 @@ FilterChannels = {
     RGB = 6,
     RGBA = 7,
     GRAYA = 8,
+}
+
+---@enum (exact) FlipType https://www.aseprite.org/api/fliptype
+FlipType = {
+    HORIZONTAL = 0,
+    VERTICAL = 1,
+    DIAGONAL = 2,
 }
 
 ---@enum (exact) Ink https://www.aseprite.org/api/ink
@@ -545,8 +561,8 @@ Dialog = {}
 Editor = {}
 
 ---@class (exact) Events https://www.aseprite.org/api/events
----@field on fun(events: Events, eventName: string, function: fun()): any
----@field off fun(events: Events, function: fun()) | fun(events: Events, listenerCode: any)
+---@field on fun(events: Events, eventName: string, function: fun(...: any)): any
+---@field off fun(events: Events, function: fun(...: any)) | fun(events: Events, listenerCode: any)
 Events = {}
 
 ---@class (exact) Frame https://www.aseprite.org/api/frame
@@ -616,6 +632,7 @@ GraphicsContext = {}
 ---@field saveAs fun(image: Image, filename: string) | fun(image: Image, table: { filename: string, palette: Palette })
 ---@field resize fun(image: Image, width: number, height: number) | fun(image: Image, table: { width: number, height: number, method?: "bilinear" | "rotsprite", pivot?: Point } | { size: Size, method?: "bilinear" | "rotsprite", pivot?: Point })
 ---@field shrinkBounds (fun(image: Image): Rectangle) | (fun(image: Image, refColor: Color): Rectangle)
+---@field flip fun(image: Image, fliptype?: FlipType)
 Image = {}
 
     ---@return Image
@@ -675,7 +692,7 @@ KeyEvent = {}
 ---@field color Color
 ---@field data string
 ---@field properties Properties
----@field cel fun(layer: Layer, frameNumber: number): Cel | nil
+---@field cel (fun(layer: Layer, frame: Frame): Cel | nil) | (fun(layer: Layer, frameNumber: number): Cel | nil)
 ---@field tileset Tileset
 Layer = {}
 
@@ -785,6 +802,7 @@ Rectangle = {}
     ---@return Rectangle
     ---@overload fun(otherRectangle: Rectangle): Rectangle
     ---@overload fun(x: number, y: number, width: number, height: number): Rectangle
+    ---@overload fun(point: Point | Size, size: Point | Size): Rectangle
     ---@overload fun(table: { x: number, y: number, width: number, height: number }): Rectangle
     ---@overload fun(table: { x: number, y: number, w: number, h: number }): Rectangle
     ---@overload fun(array: number[]): Rectangle
@@ -800,7 +818,7 @@ Rectangle = {}
 ---@field add fun(selection: Selection, other: Rectangle | Selection)
 ---@field subtract fun(selection: Selection, other: Rectangle | Selection)
 ---@field intersect fun(selection: Selection, other: Rectangle | Selection)
----@field contains fun(point: Point) | fun(x: number, y: number): boolean
+---@field contains fun(selection: Selection, point: Point) | fun(selection: Selection, x: number, y: number): boolean
 Selection = {}
 
     ---@return Selection
@@ -992,3 +1010,6 @@ function init(plugin) end
 
 ---@param plugin Plugin
 function exit(plugin) end
+
+---@param uuid string | Sprite | Layer | Frame | Cel | Tag | Tile
+function Uuid(uuid) end
